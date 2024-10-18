@@ -10,13 +10,13 @@
   (now [this] (.now js/Date))
   (schedule [this t fn0]
     (let [dela (- t (p/now this))]
-      (let [h (.setTimeout js/window (fn [_] (fn0)) (max 0 dela))]
+      (let [h (js/setTimeout (fn [_] (fn0)) (max 0 dela))]
         (swap! timers conj h)
         h)))
   (cancel [this sched]
     (when (@timers sched)
       (swap! timers disj sched)
-      (.clearTimeout js/window sched)
+      (js/clearTimeout sched)
       true))
   (stop [this]
     (run! #(p/cancel this %) @timers)
