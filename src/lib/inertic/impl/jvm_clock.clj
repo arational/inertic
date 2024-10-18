@@ -18,19 +18,24 @@
   (proxy [TimerTask] []
     (run [] (f))))
 
-(defn make-id-gen [] (let [v (atom 0)] (fn [] (swap! v inc))))
+(defn make-id-gen []
+  (let [v (atom 0)]
+    (fn [id-fn]
+      (let [id (swap! v inc)]
+        (when id-fn (id-fn id))
+        id))))
 
 ;; Uses currentTimeMillis, more suitable for clock adjusted execution
 (defrecord JVMTimer [ttasks ^Timer timer id-gen]
   p/Clock
   (now [this] (System/currentTimeMillis))
-  (schedule [this t fn0]
-    (let [id (id-gen)
+  (schedule [this t fn0 id-fn]
+    (let [id (id-gen id-fn)
           task (task (fn []
                        (swap! ttasks dissoc id)
-                       (fn0)))
-          _ (swap! ttasks assoc id task)
-          _ (.schedule timer task (Date. ^long t))]
+                       (fn0 id)))]
+      (swap! ttasks assoc id task)
+      (.schedule timer task (Date. ^long t))
       id))
   (cancel [this sched-id]
     (let [[before] (swap! ttasks dissoc sched-id)]
@@ -44,9 +49,9 @@
 (defrecord JVMScheduler [ttasks ^ScheduledExecutorService scheduler id-gen]
   p/Clock
   (now [this] (quot (System/nanoTime) 1000000))
-  (schedule [this t fn0]
+  (schedule [this t fn0 id-fn]
     (let [dela (- t (p/now this))]
-      (let [id (id-gen)
+      (let [id (id-gen id-fn)
             scheduled (promise)
             task
             (.schedule scheduler
@@ -54,7 +59,7 @@
                        (fn []
                          @scheduled ;; ensure to cleanup after task is assoced
                          (swap! ttasks dissoc id)
-                         (fn0))
+                         (fn0 id))
                        ^long (max dela 0)
                        TimeUnit/MILLISECONDS)
             _ (swap! ttasks assoc id task)
