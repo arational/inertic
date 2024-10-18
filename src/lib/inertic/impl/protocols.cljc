@@ -6,9 +6,10 @@
 (defprotocol Clock
   (now [this]
     "Return the current clock time in ms")
-  (schedule [this t fn0]
-    "Schedule f fn0 to be executed at t.  fn0 may not block.  If t is in
-the past or present, fn0 execute fn0 immediately.  Return a sched-id.")
+  (schedule [this t fn0 id-fn]
+    "Schedule f fn0 to be executed at t.  fn0 may not block.  If t is
+in the past or present, fn0 execute fn0 immediately.  id-fn is called
+with the sched-id before scheduling.  Return a sched-id.")
   (cancel [this sched-id]
     "Cancel a scheduled task.  Return true if the task was cancelled the
 first time.")

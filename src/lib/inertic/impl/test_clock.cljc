@@ -31,7 +31,7 @@
 (defrecord TestClock [state]
   p/Clock
   (now [this] (:t-now @state))
-  (schedule [this t fn0]
+  (schedule [this t fn0 id-fn]
     (let [[before _]
           (-> state
               (swap-vals!
@@ -45,6 +45,7 @@
 
           id
           (:id-ctr before)]
+      (when id-fn (id-fn id))
       (fire-tasks! state)
       id))
   (cancel [this sched-id]

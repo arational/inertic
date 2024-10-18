@@ -16,27 +16,33 @@
 
 (defn run-in
   "Runs fn0 once, in ms, from now."
-  [clock ms fn0]
-  (p/schedule clock (+ (p/now clock) ms) fn0))
+  ([clock ms fn0]
+   (run-in clock ms fn0 nil))
+  ([clock ms fn0 id-fn]
+   (p/schedule clock (+ (p/now clock) ms) fn0 id-fn)))
 
 (defn run-at
   "See run-in."
-  [clock start-t-ms fn0]
-  (p/schedule clock start-t-ms fn0))
+  ([clock start-t-ms fn0]
+   (run-at clock start-t-ms fn0 nil))
+  ([clock start-t-ms fn0 id-fn]
+   (p/schedule clock start-t-ms fn0 id-fn)))
 
 (defn run-every
   "Runs task every ms, at fixed rate.  I. e. a slow task / env parked by
   OS will `make up` for a missed execution."
   ([clock ms fn0] (run-every clock (p/now clock) ms fn0))
-  ([clock start-t-ms ms fn0]
+  ([clock start-t-ms ms fn0] (clock start-t-ms ms fn0 nil))
+  ([clock start-t-ms ms fn0 id-fn]
    (let [active? (volatile! true)
          go (fn go [start-t-ms]
               (p/schedule clock
                           start-t-ms
-                          (fn []
+                          (fn [id]
                             (when @active?
-                              (fn0)
-                              (go (+ start-t-ms ms))))))]
+                              (fn0 id)
+                              (go (+ start-t-ms ms))))
+                          id-fn))]
      (go (+ start-t-ms ms))
      active?)))
 
